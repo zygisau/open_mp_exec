@@ -52,7 +52,7 @@ double ts = getTime();                          // Algoritmo vykdymo pradzios la
     int NUM_THREADS = 4;                        // Giju skaicius
 
     string fileName = "distances_between_cities.txt";
-    writeDistancesToFile(fileName);
+    // writeDistancesToFile(fileName);
     readDistancesFromFile(fileName);
     //----- Pagrindinis ciklas ------------------------------------------------
     omp_set_num_threads(NUM_THREADS);
@@ -87,12 +87,12 @@ void readFromFile(string& fileName) {
     ifstream file;
     file.open(fileName, ofstream::in);
     string line;
-    int row, column, value;
+    int row = 0, column = 0, value = 0;
     while(std::getline(file, line)) {
         std::stringstream lineStream(line);
 
         while (lineStream >> value) {
-            citiesMatrix[row][column] = value;
+            *(*(citiesMatrix + row) + column) = value;
             column++;
         }
         row++;
@@ -117,7 +117,7 @@ void writeToFile(string& fileName) {
     file.open(fileName, ofstream::out);
     for (int i = 0; i < demandPointsCount; ++i) {
         for (int j = 0; j < demandPointsCount; ++j) {
-            file << demandPoints[i][j] << " ";
+            file << citiesMatrix[i][j] << " ";
         }
         file << endl;
     }
@@ -145,7 +145,7 @@ void writeDistancesToFile(string& fileName) {
 void initializeMatrix() {
     citiesMatrix = new double*[demandPointsCount];
     for(int i = 0; i < demandPointsCount; ++i)
-        citiesMatrix[i] = new double[demandPointsCount];
+        citiesMatrix[i] = new double[demandPointsCount]();
 }
 
 //=============================================================================

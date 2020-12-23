@@ -36,3 +36,6 @@
 
 # Clion folders
 /.idea
+
+# C++ execution file
+output
