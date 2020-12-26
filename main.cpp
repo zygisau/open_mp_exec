@@ -17,7 +17,6 @@ int candidatesCount = 3;            // Nauju objektu skaicius
 
 double **demandPoints;              // Geografiniai duomenys
 double **citiesMatrix = nullptr;    // Miestų matrica
-int *currentPoint;                  // Sprendinys
 
 //=============================================================================
 
@@ -43,8 +42,6 @@ double ts = getTime();                          // Algoritmo vykdymo pradzios la
 
     loadDemandPoints();                         // Nuskaitomi duomenys
 
-    currentPoint = new int[candidatesCount];    // Sprendinys
-    double u;						            // Sprendinio tikslo funkcijos reiksme
     int *bestX = new int[candidatesCount];		// Geriausias rastas sprendinys
     double bestU = -1;	            			// Geriausio sprendinio tikslo funkcijos reiksme
 
@@ -56,20 +53,35 @@ double ts = getTime();                          // Algoritmo vykdymo pradzios la
     readDistancesFromFile(fileName);
     //----- Pagrindinis ciklas ------------------------------------------------
     omp_set_num_threads(NUM_THREADS);
+    
+    initializeMatrix();
+    calculateDistanceMatrix();
+
     #pragma omp parallel
     {
-        initializeMatrix();
-        calculateDistanceMatrix();
+        int* threadCurrentPoint = new int[candidatesCount]; // Sprendinys
+        double threadU;                                     // Sprendinio tikslo funkcijos reiksme
+        double threadBestU = -1;
+
         #pragma omp for schedule(static)
         for (int iters=0; iters<nIterations; iters++) {
             // Generuojam atsitiktini sprendini ir tikrinam ar jis nera geresnis uz geriausia zinoma
-            randomSolution(currentPoint);
-            u = evaluateSolution(currentPoint);
-            if (u > bestU) {     // Jei geresnis, tai issaugojam kaip geriausia zinoma
-                bestU = u;
-                for (int i=0; i < candidatesCount; i++) bestX[i] = currentPoint[i];
+            randomSolution(threadCurrentPoint);
+            threadU = evaluateSolution(threadCurrentPoint);
+            if (threadU > threadBestU) {     // Jei geresnis, tai issaugojam kaip geriausia zinoma
+                threadBestU = threadU;
+                for (int i=0; i < candidatesCount; i++) bestX[i] = threadCurrentPoint[i];
             }
         }
+
+        #pragma omp critical
+        {
+            if (threadBestU > bestU) {
+                bestU = threadBestU;
+                for (int i=0; i < candidatesCount; i++) bestX[i] = threadCurrentPoint[i];
+            }
+        }
+
     }
 
     //----- Rezultatu spausdinimas --------------------------------------------
@@ -161,10 +173,13 @@ void assignDistance(int i, int j) {
 //=============================================================================
 
 void calculateDistanceMatrix() {
-    #pragma omp for schedule(static)
-    for (int i = 0; i < demandPointsCount; i++) {
-        for (int j = 0; j < demandPointsCount; j++) {
-            assignDistance(i, j);
+    #pragma omp parallel
+    {
+        #pragma omp for schedule(static)
+        for (int i = 0; i < demandPointsCount; i++) {
+            for (int j = 0; j < demandPointsCount; j++) {
+                assignDistance(i, j);
+            }
         }
     }
 }
