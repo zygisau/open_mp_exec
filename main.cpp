@@ -38,7 +38,7 @@ void readFromFile(string& fileName);
 
 int main() {
 
-double ts = getTime();                          // Algoritmo vykdymo pradzios laikas
+    double ts = getTime();                      // Algoritmo vykdymo pradzios laikas
 
     loadDemandPoints();                         // Nuskaitomi duomenys
 
@@ -48,15 +48,21 @@ double ts = getTime();                          // Algoritmo vykdymo pradzios la
     int nIterations = 10048;                    // Iteraciju skaicius
     int NUM_THREADS = 4;                        // Giju skaicius
 
-    string fileName = "distances_between_cities.txt";
+    // double matrixLoadFromFileStart = getTime();
+    // string fileName = "distances_between_cities.txt";
     // writeDistancesToFile(fileName);
-    readDistancesFromFile(fileName);
-    //----- Pagrindinis ciklas ------------------------------------------------
+    // readDistancesFromFile(fileName);
+    // double matrixLoadFromFileEnd = getTime();
+
     omp_set_num_threads(NUM_THREADS);
     
+    double matrixCalcStart = getTime();
     initializeMatrix();
     calculateDistanceMatrix();
-
+    double matrixCalcEnd = getTime();
+    
+    //----- Pagrindinis ciklas ------------------------------------------------
+    double mainCalcStart = getTime();
     #pragma omp parallel
     {
         int* threadCurrentPoint = new int[candidatesCount]; // Sprendinys
@@ -83,6 +89,7 @@ double ts = getTime();                          // Algoritmo vykdymo pradzios la
         }
 
     }
+    double mainCalcStop = getTime();
 
     //----- Rezultatu spausdinimas --------------------------------------------
 
@@ -90,7 +97,11 @@ double ts = getTime();                          // Algoritmo vykdymo pradzios la
 
     cout << "Geriausias sprendinys: ";
     for (int i=0; i < candidatesCount; i++) cout << bestX[i] << " ";
-    cout << "(" << bestU << ")" << endl << "Skaiciavimo trukme: " << tf-ts << endl;
+    cout << "(" << bestU << ")" << endl;
+    cout << "Matricos skaiciavimo trukme: " << matrixCalcEnd-matrixCalcStart << endl;
+    // cout << "Matricos ikelimo is failo trukme: " << matrixLoadFromFileEnd-matrixLoadFromFileStart << endl;
+    cout << "Skaiciavimo trukme: " << mainCalcStop-mainCalcStart << endl;
+    cout << "Programos veikimo trukme: " << tf-ts << endl;
 }
 
 //=============================================================================
@@ -246,12 +257,14 @@ double evaluateSolution(int *X) {
     for (int i=0; i < demandPointsCount; i++) {
         bestPF = 1e5;
         for (int j=0; j < preexistingPointsCount; j++) {
-            d = citiesMatrix[i][j];
+            d = citiesMatrix[i][j];   
+            // d = HaversineDistance(demandPoints[i], demandPoints[j]);
             if (d < bestPF) bestPF = d;
         }
         bestX = 1e5;
         for (int j=0; j < candidatesCount; j++) {
             d = citiesMatrix[i][X[j]];
+            // d = HaversineDistance(demandPoints[i], demandPoints[X[j]]);
             if (d < bestX) bestX = d;
         }
         if (bestX < bestPF) U += demandPoints[i][2];

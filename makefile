@@ -7,3 +7,7 @@ all: main.cpp
 release: main.cpp
 	${CC} -std=c++17 -fopenmp main.cpp -o output
 	./output
+
+nomp: main.cpp
+	${CC} -std=c++17 main.cpp -o output
+	./output
