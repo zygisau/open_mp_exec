@@ -5,7 +5,7 @@ all: main.cpp
 	./output
 
 release: main.cpp
-	${CC} -std=c++17 -fopenmp main.cpp -o output
+	${CC} -std=c++17 -O3 -fopenmp main.cpp -o output
 	./output
 
 nomp: main.cpp

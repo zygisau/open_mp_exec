@@ -14,15 +14,15 @@
 
 using std::cout, std::endl, std::string, std::ifstream, std::ofstream, std::vector;
 
-int demandPointsCount = 10000;      // Vietoviu skaicius (demand points, max 10000)
-int preexistingPointsCount = 5;     // Esanciu objektu skaicius (preexisting facilities)
-int candidateLocationsCount = 50;   // Kandidatu naujiems objektams skaicius (candidate locations)
-int candidatesCount = 3;            // Nauju objektu skaicius
+int demandPointsCount = 10000;                      // Vietoviu skaicius (demand points, max 10000)
+int preexistingPointsCount = 5;                     // Esanciu objektu skaicius (preexisting facilities)
+int candidateLocationsCount = 50;                   // Kandidatu naujiems objektams skaicius (candidate locations)
+int candidatesCount = 3;                            // Nauju objektu skaicius
 
-vector<vector<double>> demandPointsVector;
-vector<vector<double>>::iterator demandPoints;              // Geografiniai duomenys
-vector<vector<double>> citiesMatrix;    // Miestų matrica
-vector<vector<double>>::iterator citiesMatrixIt;    // Miestų matrica
+vector<vector<double>> demandPoints;                // Geografiniai duomenys
+vector<vector<double>>::iterator demandPointsIt;
+vector<vector<double>> citiesMatrix;                // Miestų matrica
+vector<vector<double>>::iterator citiesMatrixIt;
 
 //=============================================================================
 
@@ -44,15 +44,15 @@ void readFromFile(string& fileName);
 
 int main() {
 
-    double ts = getTime();                      // Algoritmo vykdymo pradzios laikas
+    double ts = getTime();                                  // Algoritmo vykdymo pradzios laikas
 
-    loadDemandPoints();                         // Nuskaitomi duomenys
+    loadDemandPoints();                                     // Nuskaitomi duomenys
 
     vector<int> bestX = vector<int>(candidatesCount);		// Geriausias rastas sprendinys
-    double bestU = -1;	            			// Geriausio sprendinio tikslo funkcijos reiksme
+    double bestU = -1;	            			            // Geriausio sprendinio tikslo funkcijos reiksme
 
-    int nIterations = 10048;                    // Iteraciju skaicius
-    int NUM_THREADS = 4;                        // Giju skaicius
+    int nIterations = 10048;                                // Iteraciju skaicius
+    int NUM_THREADS = 4;                                    // Giju skaicius
 
      double matrixLoadFromFileStart = getTime();
 //     string fileName = "distances_between_cities.txt";
@@ -72,7 +72,7 @@ int main() {
     #pragma omp parallel shared(candidatesCount, nIterations, bestX, bestU) default(none)
     {
         vector<int> threadCurrentPoint(candidatesCount); // Sprendinys
-        double threadU;                                     // Sprendinio tikslo funkcijos reiksme
+        double threadU;                                  // Sprendinio tikslo funkcijos reiksme
         double threadBestU = -1;
 
         #pragma omp for schedule(static)
@@ -184,7 +184,7 @@ void assignDistance(int i, int j) {
     if (i == j) {
         citiesMatrix[i][j] = 0;
     } else {
-        citiesMatrix[i][j] = HaversineDistance(demandPoints+i, demandPoints+j);
+        citiesMatrix[i][j] = HaversineDistance(demandPointsIt + i, demandPointsIt + j);
     }
 }
 
@@ -211,15 +211,15 @@ void loadDemandPoints() {
     file.open("demandPoints.dat", ofstream::in);
     string line, substring;
     int column = 0;
-    demandPointsVector.reserve(demandPointsCount);
-    demandPoints = demandPointsVector.begin();
+    demandPoints.reserve(demandPointsCount);
+    demandPointsIt = demandPoints.begin();
     for (int i=0; i < demandPointsCount; i++) {
         std::getline(file, line);
         std::stringstream lineStream(line);
 
-        demandPointsVector.emplace_back(3, 0);
+        demandPoints.emplace_back(3, 0);
         while (std::getline(lineStream, substring, '\t')) {
-            demandPointsVector[i][column] = std::stod(substring);
+            demandPoints[i][column] = std::stod(substring);
             column++;
         }
         column = 0;
@@ -281,8 +281,8 @@ double evaluateSolution(vector<int>& X) {
             d = citiesMatrix[i][X[j]];
             if (d < bestX) bestX = d;
         }
-        if (bestX < bestPF) U += demandPointsVector[i][2];
-        else if (bestX == bestPF) U += 0.3 * demandPointsVector[i][2];
+        if (bestX < bestPF) U += demandPoints[i][2];
+        else if (bestX == bestPF) U += 0.3 * demandPoints[i][2];
     }
     return U;
 }
