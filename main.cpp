@@ -21,7 +21,8 @@ int candidatesCount = 3;            // Nauju objektu skaicius
 
 vector<vector<double>> demandPointsVector;
 vector<vector<double>>::iterator demandPoints;              // Geografiniai duomenys
-double **citiesMatrix = nullptr;    // Miestų matrica
+vector<vector<double>> citiesMatrix;    // Miestų matrica
+vector<vector<double>>::iterator citiesMatrixIt;    // Miestų matrica
 
 //=============================================================================
 
@@ -53,11 +54,11 @@ int main() {
     int nIterations = 10048;                    // Iteraciju skaicius
     int NUM_THREADS = 4;                        // Giju skaicius
 
-    // double matrixLoadFromFileStart = getTime();
-    // string fileName = "distances_between_cities.txt";
-    // writeDistancesToFile(fileName);
-    // readDistancesFromFile(fileName);
-    // double matrixLoadFromFileEnd = getTime();
+     double matrixLoadFromFileStart = getTime();
+//     string fileName = "distances_between_cities.txt";
+//     writeDistancesToFile(fileName);
+//     readDistancesFromFile(fileName);
+     double matrixLoadFromFileEnd = getTime();
 
     omp_set_num_threads(NUM_THREADS);
     
@@ -114,12 +115,13 @@ void readFromFile(string& fileName) {
     ifstream file;
     file.open(fileName, ofstream::in);
     string line;
-    int row = 0, column = 0, value = 0;
+    int row = 0, column = 0;
+    double value = 0;
     while(std::getline(file, line)) {
         std::stringstream lineStream(line);
 
         while (lineStream >> value) {
-            *(*(citiesMatrix + row) + column) = value;
+            *((citiesMatrixIt + row)->begin() + column) = value;
             column++;
         }
         row++;
@@ -131,7 +133,7 @@ void readFromFile(string& fileName) {
 //=============================================================================
 
 void readDistancesFromFile(string& fileName) {
-    if (citiesMatrix == nullptr) {
+    if (citiesMatrix.empty()) {
         initializeMatrix();
     }
     readFromFile(fileName);
@@ -144,7 +146,7 @@ void writeToFile(string& fileName) {
     file.open(fileName, ofstream::out);
     for (int i = 0; i < demandPointsCount; ++i) {
         for (int j = 0; j < candidateLocationsCount; ++j) {
-            file << citiesMatrix[i][j] << " ";
+            file << *((citiesMatrixIt + i)->begin() + j) << " ";
         }
         file << endl;
     }
@@ -154,7 +156,7 @@ void writeToFile(string& fileName) {
 //=============================================================================
 
 void ensureCitiesMatrixInitialized() {
-    if (citiesMatrix == nullptr) {
+    if (citiesMatrix.empty()) {
         initializeMatrix();
         calculateDistanceMatrix();
     }
@@ -170,9 +172,10 @@ void writeDistancesToFile(string& fileName) {
 //=============================================================================
 
 void initializeMatrix() {
-    citiesMatrix = new double*[demandPointsCount];
+    citiesMatrix.reserve(demandPointsCount);
+    citiesMatrixIt = citiesMatrix.begin();
     for(int i = 0; i < demandPointsCount; ++i)
-        citiesMatrix[i] = new double[candidateLocationsCount]();
+        citiesMatrix.emplace_back(candidateLocationsCount);
 }
 
 //=============================================================================
@@ -271,16 +274,11 @@ double evaluateSolution(vector<int>& X) {
     int bestX;
     double d;
     for (int i=0; i < demandPointsCount; i++) {
-        bestPF = 1e5;
-        for (int j=0; j < preexistingPointsCount; j++) {
-            d = citiesMatrix[i][j];   
-            // d = HaversineDistance(demandPoints[i], demandPoints[j]);
-            if (d < bestPF) bestPF = d;
-        }
-        bestX = 1e5;
-        for (int j=0; j < candidatesCount; j++) {
+        bestPF = *std::min_element((citiesMatrixIt + i)->begin(), (citiesMatrixIt + i)->begin()+preexistingPointsCount);
+        bestX = citiesMatrix[i][X[0]];
+
+        for (int j=1; j < candidatesCount; j++) {
             d = citiesMatrix[i][X[j]];
-            // d = HaversineDistance(demandPoints[i], demandPoints[X[j]]);
             if (d < bestX) bestX = d;
         }
         if (bestX < bestPF) U += demandPointsVector[i][2];
