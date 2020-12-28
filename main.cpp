@@ -47,11 +47,11 @@ int main() {
 
     loadDemandPoints();                         // Nuskaitomi duomenys
 
-    int *bestX = new int[candidatesCount];		// Geriausias rastas sprendinys
+    vector<int> bestX = vector<int>(candidatesCount);		// Geriausias rastas sprendinys
     double bestU = -1;	            			// Geriausio sprendinio tikslo funkcijos reiksme
 
     int nIterations = 10048;                    // Iteraciju skaicius
-    int NUM_THREADS = 1;                        // Giju skaicius
+    int NUM_THREADS = 4;                        // Giju skaicius
 
     // double matrixLoadFromFileStart = getTime();
     // string fileName = "distances_between_cities.txt";
@@ -81,7 +81,6 @@ int main() {
             threadU = evaluateSolution(threadCurrentPoint);
             if (threadU > threadBestU) {     // Jei geresnis, tai issaugojam kaip geriausia zinoma
                 threadBestU = threadU;
-                for (int i=0; i < candidatesCount; i++) bestX[i] = threadCurrentPoint[i];
             }
         }
 
@@ -89,7 +88,7 @@ int main() {
         {
             if (threadBestU > bestU) {
                 bestU = threadBestU;
-                for (int i=0; i < candidatesCount; i++) bestX[i] = threadCurrentPoint[i];
+                std::copy(threadCurrentPoint.begin(), threadCurrentPoint.end(), bestX.begin());
             }
         }
 
@@ -189,7 +188,7 @@ void assignDistance(int i, int j) {
 //=============================================================================
 
 void calculateDistanceMatrix() {
-    #pragma omp parallel shared(demandPointsCount, candidateLocationsCount)
+    #pragma omp parallel shared(demandPointsCount, candidateLocationsCount) default(none)
     {
         #pragma omp for schedule(static)
         for (int i = 0; i < demandPointsCount; i++) {
